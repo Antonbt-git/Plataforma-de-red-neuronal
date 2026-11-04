@@ -1,0 +1,13 @@
+.git
+.gitignore
+.env
+**/node_modules
+**/dist
+**/__pycache__
+**/.pytest_cache
+**/.venv
+**/*.pyc
+services/api/neurolab.db
+services/api/storage
+docs/*.pdf
+apps/web/tsconfig.tsbuildinfo

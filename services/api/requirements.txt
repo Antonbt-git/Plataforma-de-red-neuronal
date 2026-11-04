@@ -3,5 +3,7 @@ uvicorn[standard]>=0.30,<1.0
 pydantic-settings>=2.4,<3.0
 python-multipart>=0.0.9
 numpy>=1.26,<3.0
-# Opcional: para usar el motor TensorFlow/Keras en lugar del fallback didáctico con NumPy:
+# Driver PostgreSQL para despliegues con NEUROLAB_DATABASE_URL=postgresql+psycopg://
+psycopg[binary]>=3.2,<4.0
+# Opcional: para usar el motor TensorFlow/Keras en lugar del motor NumPy:
 # tensorflow>=2.16

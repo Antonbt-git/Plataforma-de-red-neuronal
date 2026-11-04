@@ -6,3 +6,11 @@ __pycache__/
 .env
 *.pyc
 .DS_Store
+
+# Datos locales
+services/api/neurolab.db
+services/api/storage/
+*.db
+*.sqlite3
+*.npz
+apps/web/tsconfig.tsbuildinfo
