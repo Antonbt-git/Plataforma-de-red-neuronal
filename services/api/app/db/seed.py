@@ -17,7 +17,6 @@ from app.repositories import audit, projects as projects_repo, users as users_re
 logger = get_logger("neurolab.seed")
 
 DEMO_EMAIL = "admin@neurolab.local"
-DEMO_PASSWORD = "NeuroLab2026!"
 
 
 def _ensure_user(db: Session, email: str, password: str, name: str, role: str) -> User:
@@ -77,9 +76,21 @@ def _dataset_metadata(content: bytes) -> tuple[dict, str]:
 def seed_demo(db: Session) -> None:
     if not settings.seed_demo:
         return
-    admin = _ensure_user(db, DEMO_EMAIL, DEMO_PASSWORD, "Administrador NeuroLab", "Administrador")
-    analyst = _ensure_user(db, "analista@neurolab.local", "Analista2026!", "Analista de IA", "Analista")
-    reviewer = _ensure_user(db, "revisor@neurolab.local", "Revisor2026!", "Revisor de modelos", "Revisor")
+    admin = _ensure_user(db, DEMO_EMAIL, settings.demo_password, "Administrador NeuroLab", "Administrador")
+    analyst = _ensure_user(
+        db,
+        "analista@neurolab.local",
+        settings.demo_analyst_password,
+        "Analista de IA",
+        "Analista",
+    )
+    reviewer = _ensure_user(
+        db,
+        "revisor@neurolab.local",
+        settings.demo_reviewer_password,
+        "Revisor de modelos",
+        "Revisor",
+    )
 
     project = (
         db.query(Project)
@@ -119,6 +130,14 @@ def seed_demo(db: Session) -> None:
         .filter(Dataset.project_id == project.id, Dataset.name == "clientes_demo.csv")
         .first()
     )
+    if dataset and not (settings.storage_dir / dataset.storage_key).exists():
+        # La fila existe en la base de datos pero el artefacto se perdió
+        # (por ejemplo, un despliegue sin disco persistente). El CSV demo es
+        # determinista, así que se regenera con el mismo checksum.
+        destination = settings.storage_dir / dataset.storage_key
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(_generate_csv())
+        logger.warning("seed.dataset_restored", extra={"dataset_id": dataset.id})
     if not dataset:
         content = _generate_csv()
         metadata, checksum = _dataset_metadata(content)

@@ -4,15 +4,25 @@ from __future__ import annotations
 from collections.abc import Generator
 
 from sqlalchemy import create_engine, event
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import Engine, make_url
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
 from app.db.models import Base
 
-connect_args = {}
+connect_args: dict = {}
 if settings.database_url.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
+else:
+    db_url = make_url(settings.database_url)
+    if db_url.get_backend_name() == "postgresql":
+        # Supavisor/PgBouncer en modo transacción (puerto 6543) no soporta
+        # sentencias preparadas. psycopg 3 las desactiva con prepare_threshold.
+        # En el pooler de sesión (5432) o conexión directa no es necesario.
+        is_transaction_pooler = db_url.port == 6543
+        if is_transaction_pooler:
+            connect_args["prepare_threshold"] = None
+        connect_args["connect_timeout"] = 10
 
 engine: Engine = create_engine(
     settings.database_url,

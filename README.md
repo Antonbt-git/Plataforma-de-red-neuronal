@@ -75,7 +75,9 @@ services/api/                Backend FastAPI
   tests/                     Pruebas con SQLite aislado
 infra/docker/                Dockerfiles y nginx con soporte SSE
 infra/postgres/schema.sql    Esquema PostgreSQL alineado con SQLAlchemy
-docs/                        Arquitectura, implementación y documento maestro
+infra/supabase/hardening.sql RLS y revocación de permisos para Supabase
+render.yaml                  Blueprint de despliegue de la API en Render
+docs/                        Arquitectura, despliegue, implementación y documento maestro
 ```
 
 ---
@@ -189,7 +191,40 @@ El proxy nginx desactiva el buffering para SSE. Los volúmenes `postgres_data` y
 
 ---
 
-## 7. Configuración
+## 7. Despliegue en la nube (Supabase + Render + Vercel)
+
+La guía paso a paso está en **[`docs/DESPLIEGUE.md`](docs/DESPLIEGUE.md)**.
+
+Resumen:
+
+1. **Supabase** → crea el proyecto PostgreSQL y copia la URI del *session
+   pooler* (puerto 5432) con `?sslmode=require`.
+2. **Render** → `New → Blueprint`, conecta el repositorio y aplica
+   [`render.yaml`](render.yaml). Introduce la URI de Supabase, el dominio de
+   Vercel y las contraseñas demo. El blueprint incluye disco persistente en
+   `/var/data`, health check en `/health` y secreto generado.
+3. **Vercel** → importa el repositorio con **Root Directory** `apps/web`,
+   define `VITE_API_URL=https://TU-API.onrender.com` y despliega.
+4. Vuelve a Render y añade el dominio de Vercel a
+   `NEUROLAB_CORS_ORIGINS`.
+5. Ejecuta `infra/supabase/hardening.sql` en el SQL Editor de Supabase para
+   activar RLS y revocar el acceso de `anon`/`authenticated`.
+
+Comprobación rápida:
+
+```bash
+curl https://TU-API.onrender.com/health
+# {"status":"ok","database":true,...}
+```
+
+> En el plan Free de Render el servicio se duerme por inactividad y no hay
+> disco persistente. Para una demo con datos que sobrevivan a reinicios, usa
+> el plan Starter. La API debe correr en **una sola instancia**: el worker de
+> entrenamiento vive dentro del proceso.
+
+---
+
+## 8. Configuración
 
 Copia `.env.example` a `.env` (o exporta las variables). El backend lee:
 
@@ -204,9 +239,13 @@ Copia `.env.example` a `.env` (o exporta las variables). El backend lee:
 | `NEUROLAB_WORKERS` | `2` | Hilos de entrenamiento. |
 | `NEUROLAB_EPOCH_DELAY_MS` | `120` | Pausa didáctica entre épocas. |
 | `NEUROLAB_SEED_DEMO` | `true` | Carga datos de demostración. |
+| `NEUROLAB_DEMO_PASSWORD` | `NeuroLab2026!` | Contraseña inicial del admin demo. |
+| `NEUROLAB_DEMO_ANALYST_PASSWORD` | `Analista2026!` | Contraseña inicial del analista demo. |
+| `NEUROLAB_DEMO_REVIEWER_PASSWORD` | `Revisor2026!` | Contraseña inicial del revisor demo. |
 | `NEUROLAB_LOGIN_RATE_LIMIT` | `10` | Intentos de login por minuto. |
 | `NEUROLAB_WRITE_RATE_LIMIT` | `120` | Escrituras por minuto. |
 | `NEUROLAB_CORS_ORIGINS` | localhost:5173/5174 | Orígenes permitidos. |
+| `NEUROLAB_CORS_ORIGIN_REGEX` | vacío | Regex opcional para previews de Vercel. |
 
 Frontend:
 
@@ -219,7 +258,7 @@ La pausa entre épocas solo hace visible el progreso; no altera las métricas. C
 
 ---
 
-## 8. Motor de entrenamiento
+## 9. Motor de entrenamiento
 
 `services/api/app/modules/training/engine.py` implementa:
 
@@ -242,7 +281,7 @@ sin dependencias pesadas.
 
 ---
 
-## 9. Pruebas y verificación
+## 10. Pruebas y verificación
 
 ```bash
 cd services/api
@@ -262,7 +301,7 @@ verificación de tipos.
 
 ---
 
-## 10. Seguridad
+## 11. Seguridad
 
 - El backend es la única frontera de seguridad; el frontend oculta acciones por
   rol, pero la API vuelve a validar permisos.
@@ -281,7 +320,7 @@ observabilidad centralizada y revisa los límites de workers y subida.
 
 ---
 
-## 11. Limitaciones conocidas
+## 12. Limitaciones conocidas
 
 - Solo Feedforward ejecuta entrenamientos; RNN/CNN/GAN se validan y registran.
 - El motor por defecto es NumPy, no TensorFlow/Keras.
@@ -292,16 +331,17 @@ observabilidad centralizada y revisa los límites de workers y subida.
 
 ---
 
-## 12. Documentación
+## 13. Documentación
 
 - `docs/ARQUITECTURA_Y_CODIGO.md`: arquitectura, módulos, API y decisiones.
 - `docs/IMPLEMENTACION.md`: estado por fases y criterios de aceptación.
+- `docs/DESPLIEGUE.md`: publicación en Supabase, Render y Vercel.
 - `docs/Documento_Maestro_NeuroLab_Enterprise_Semana_11.pdf`: documento maestro.
 - `/docs`: Swagger interactivo generado por FastAPI.
 
 ---
 
-## 13. Solución de problemas
+## 14. Solución de problemas
 
 | Síntoma | Causa probable | Solución |
 | --- | --- | --- |

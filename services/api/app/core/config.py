@@ -34,6 +34,25 @@ def _origins() -> tuple[str, ...]:
     return tuple(item.strip() for item in raw.split(",") if item.strip())
 
 
+def _database_url() -> str:
+    """Normaliza la URL de base de datos para SQLAlchemy + psycopg.
+
+    Supabase y otros proveedores entregan ``postgresql://`` o ``postgres://``.
+    SQLAlchemy necesita el dialecto explícito ``postgresql+psycopg`` para usar
+    psycopg 3. También se elimina el parámetro ``pgbouncer`` de Prisma, que
+    psycopg no entiende.
+    """
+    raw = os.getenv(
+        "NEUROLAB_DATABASE_URL", f"sqlite:///{API_ROOT / 'neurolab.db'}"
+    ).strip()
+    for prefix in ("postgres://", "postgresql://"):
+        if raw.startswith(prefix):
+            raw = "postgresql+psycopg://" + raw[len(prefix):]
+            break
+    raw = raw.replace("?pgbouncer=true", "").replace("&pgbouncer=true", "")
+    return raw.rstrip("?&")
+
+
 @dataclass(frozen=True)
 class Settings:
     app_name: str = "NeuroLab Enterprise API"
@@ -43,20 +62,29 @@ class Settings:
     secret: str = os.getenv("NEUROLAB_SECRET", "local-dev-secret-change-before-deploy")
     token_hours: int = _int_env("NEUROLAB_TOKEN_HOURS", 8)
 
-    database_url: str = os.getenv(
-        "NEUROLAB_DATABASE_URL", f"sqlite:///{API_ROOT / 'neurolab.db'}"
-    )
+    database_url: str = field(default_factory=_database_url)
     storage_dir: Path = Path(
         os.getenv("NEUROLAB_STORAGE_DIR", str(API_ROOT / "storage"))
     )
 
     cors_origins: tuple[str, ...] = field(default_factory=_origins)
+    # Expresión regular opcional para orígenes dinámicos (previews de Vercel).
+    # Ejemplo: https://.*\.vercel\.app
+    cors_origin_regex: str = os.getenv("NEUROLAB_CORS_ORIGIN_REGEX", "").strip()
     max_upload_bytes: int = _int_env("NEUROLAB_MAX_UPLOAD_BYTES", 5_000_000)
     worker_count: int = _int_env("NEUROLAB_WORKERS", 2)
     # Pausa didáctica entre épocas para que el progreso sea observable por SSE.
     # No altera las métricas: el entrenamiento es real.
     epoch_delay_ms: int = _int_env("NEUROLAB_EPOCH_DELAY_MS", 120)
     seed_demo: bool = _bool_env("NEUROLAB_SEED_DEMO", True)
+    # Contraseñas iniciales del seed. Cámbialas en producción.
+    demo_password: str = os.getenv("NEUROLAB_DEMO_PASSWORD", "NeuroLab2026!")
+    demo_analyst_password: str = os.getenv(
+        "NEUROLAB_DEMO_ANALYST_PASSWORD", "Analista2026!"
+    )
+    demo_reviewer_password: str = os.getenv(
+        "NEUROLAB_DEMO_REVIEWER_PASSWORD", "Revisor2026!"
+    )
     login_rate_limit: int = _int_env("NEUROLAB_LOGIN_RATE_LIMIT", 10)
     write_rate_limit: int = _int_env("NEUROLAB_WRITE_RATE_LIMIT", 120)
 

@@ -1,0 +1,57 @@
+# ============================================================================
+# NeuroLab Enterprise — Blueprint de Render
+#
+# Despliega únicamente la API (FastAPI) en un servicio web Docker.
+# El frontend vive en Vercel y la base de datos en Supabase.
+#
+# Uso:
+#   1. Sube el repositorio a GitHub.
+#   2. En Render: New → Blueprint → selecciona el repositorio.
+#   3. Render pedirá los valores marcados con `sync: false`
+#      (URL de Supabase, dominio de Vercel y contraseñas demo).
+#
+# Nota: el disco persistente exige el plan Starter (7 USD/mes).
+# Si usas el plan Free, elimina el bloque `disk` y asume que los CSV y
+# modelos se pierden en cada despliegue o reinicio.
+# ============================================================================
+
+services:
+  - type: web
+    name: neurolab-api
+    runtime: docker
+    plan: starter
+    # Región de Render. Mantenla cerca de Supabase (us-east-1 → virginia).
+    region: virginia
+    dockerfilePath: ./infra/docker/Dockerfile.api
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NEUROLAB_ENV
+        value: production
+      - key: NEUROLAB_SECRET
+        generateValue: true
+      - key: NEUROLAB_DATABASE_URL
+        sync: false
+      - key: NEUROLAB_STORAGE_DIR
+        value: /var/data/storage
+      - key: NEUROLAB_CORS_ORIGINS
+        sync: false
+      - key: NEUROLAB_CORS_ORIGIN_REGEX
+        value: https://.*\.vercel\.app
+      - key: NEUROLAB_SEED_DEMO
+        value: "true"
+      - key: NEUROLAB_EPOCH_DELAY_MS
+        value: "120"
+      - key: NEUROLAB_WORKERS
+        value: "2"
+      - key: NEUROLAB_DEMO_PASSWORD
+        sync: false
+      - key: NEUROLAB_DEMO_ANALYST_PASSWORD
+        sync: false
+      - key: NEUROLAB_DEMO_REVIEWER_PASSWORD
+        sync: false
+    disk:
+      name: neurolab-storage
+      mountPath: /var/data
+      sizeGB: 1
