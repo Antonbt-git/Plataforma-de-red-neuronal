@@ -6,6 +6,10 @@ arquitectura, lanza un entrenamiento real con backpropagation y sigue las
 métricas por SSE sin recargar la página. Cada ejecución completada genera una
 versión de modelo inmutable con checksum, métricas y flujo de revisión.
 
+> 📖 **Empieza por aquí:** [`docs/COMO_FUNCIONA.md`](docs/COMO_FUNCIONA.md)
+> explica **qué hace el proyecto y cómo funciona por dentro**, con el recorrido
+> completo de un entrenamiento y sin necesidad de leer código.
+
 > **Estado de la entrega (Semana 11).** El MVP es funcional y ejecuta
 > entrenamientos reales en el servidor. El motor por defecto es un MLP en
 > NumPy con backpropagation, Adam/SGD/RMSprop y entrenamiento/validación. TensorFlow/Keras
@@ -19,7 +23,7 @@ versión de modelo inmutable con checksum, métricas y flujo de revisión.
 - Autenticación con token HMAC firmado, contraseñas PBKDF2 y rate limiting.
 - Roles globales: Administrador, Responsable, Analista, Revisor y Lector.
 - Proyectos con miembros, roles por proyecto y control de acceso en el backend.
-- Carga de CSV con validación de tamaño, codificación, columnas, nulos y tipo de tarea.
+- Carga de CSV con validación de tamaño, extensión, codificación, columnas, encabezados duplicados, filas y tipo de tarea.
 - Detección automática de tarea binaria, multiclase o regresión.
 - Diseñador visual de arquitecturas con validación de rangos y parámetros.
 - Versionado de arquitecturas y datasets: no se sobrescribe el historial.
@@ -333,6 +337,7 @@ observabilidad centralizada y revisa los límites de workers y subida.
 
 ## 13. Documentación
 
+- `docs/COMO_FUNCIONA.md`: **qué es, qué hace y cómo funciona por dentro** (lectura recomendada para empezar).
 - `docs/ARQUITECTURA_Y_CODIGO.md`: arquitectura, módulos, API y decisiones.
 - `docs/IMPLEMENTACION.md`: estado por fases y criterios de aceptación.
 - `docs/DESPLIEGUE.md`: publicación en Supabase, Render y Vercel.
